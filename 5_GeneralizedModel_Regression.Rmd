@@ -1,0 +1,333 @@
+---
+title: "Week5_Ch4"
+author: "Sahana Ramakrishnan"
+date: "2024-08-14"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ISLR2)
+library(dplyr)
+library(MASS) # for LDA, QDA
+library(class) # for KNN
+library(e1071) # for naive bayes
+library(ggplot2)
+library(carat)
+```
+
+## Exercise 4.8
+### 13. e)
+```{r}
+# loading weekly data
+data("Weekly")
+# Splitting data into training (1990-2008) and test (2009-2010) data sets
+train <- Weekly[Weekly$Year <= 2008, ]
+test <- Weekly[Weekly$Year >= 2009, ]
+
+#LDA model using training data with Lag2 as predictor
+lda_model_train <- lda(Direction ~ Lag2, data = train)
+#predicting classes for test data
+predicted_classes_test_lda <- predict(lda_model_train, newdata = test)$class
+
+#test data confusion matrix
+conf_matrix_test_lda <- table(Predicted = predicted_classes_test_lda, Actual = test$Direction)
+conf_matrix_test_lda
+
+#accuracy of test data
+accuracy_test_lda <- sum(diag(conf_matrix_test_lda)) / sum(conf_matrix_test_lda)
+accuracy_test_lda
+```
+### 13. f)
+```{r}
+#QDA model
+qda_model_train <- qda(Direction ~ Lag2, data = train)
+
+#predicting classes
+predicted_classes_test_qda <- predict(qda_model_train, newdata = test)$class
+
+#confusion matrix
+conf_matrix_test_qda <- table(Predicted = predicted_classes_test_qda, Actual = test$Direction)
+conf_matrix_test_qda
+
+#accuracy
+accuracy_test_qda <- sum(diag(conf_matrix_test_qda)) / sum(conf_matrix_test_qda)
+accuracy_test_qda
+
+```
+### 13. g)
+```{r}
+#KNN method: Lag2 predictors in matrix format
+train_X <- as.matrix(train$Lag2)
+test_X <- as.matrix(test$Lag2)
+train_Y <- train$Direction
+
+#KNN with K=1
+predicted_classes_test_knn <- knn(train = train_X, test = test_X, cl = train_Y, k = 1)
+
+#confusion matrix
+conf_matrix_test_knn <- table(Predicted = predicted_classes_test_knn, Actual = test$Direction)
+conf_matrix_test_knn
+
+#accuracy
+accuracy_test_knn <- sum(diag(conf_matrix_test_knn)) / sum(conf_matrix_test_knn)
+accuracy_test_knn
+
+```
+- knn() function from the class package, setting K=1 means that for each test observation, the class label of the nearest training observation is used to make predictions
+
+### 13. h)
+```{r}
+# Naive bayes model using training data
+nb_model_train <- naiveBayes(Direction ~ Lag2, data = train)
+
+#predict classes
+predicted_classes_test_nb <- predict(nb_model_train, newdata = test)
+
+#confusion matrix
+conf_matrix_test_nb <- table(Predicted = predicted_classes_test_nb, Actual = test$Direction)
+conf_matrix_test_nb
+
+#accuracy
+accuracy_test_nb <- sum(diag(conf_matrix_test_nb)) / sum(conf_matrix_test_nb)
+accuracy_test_nb
+
+```
+### 13. i)
+
+- Based on the accuracy from each model, 
+Naive Bayes: 0.5865
+KNN(K=1): 0.5
+QDA: 0.5865
+LDA: 0.625
+
+LDA provides the highest accuracy. Logistic regression as the method tried in previous week, 13. d) also provides accuracy of 0.625 which also proves to be one of the best methods.
+
+### 13. j)
+```{r}
+#variables
+train$Lag2_squared <- train$Lag2^2
+train$Lag1_Lag2 <- train$Lag1 * train$Lag2
+test$Lag2_squared <- test$Lag2^2
+test$Lag1_Lag2 <- test$Lag1 * test$Lag2
+
+# logistic regression
+log_model_extended <- glm(Direction ~ Lag2 + Lag1 + Lag2_squared +
+                            Lag1_Lag2, data = train, family = binomial)
+predicted_probs_log <- predict(log_model_extended, newdata = test, type = "response")
+predicted_classes_log <- ifelse(predicted_probs_log > 0.5, "Up", "Down")
+conf_matrix_log <- table(Predicted = predicted_classes_log, Actual = test$Direction)
+accuracy_log <- sum(diag(conf_matrix_log)) / sum(conf_matrix_log)
+sprintf("Log. regression accuracy: %f", accuracy_log)
+
+#LDA
+lda_model_extended <- lda(Direction ~ Lag2 + Lag1 + Lag2_squared + Lag1_Lag2, data = train)
+predicted_classes_lda <- predict(lda_model_extended, newdata = test)$class
+conf_matrix_lda <- table(Predicted = predicted_classes_lda, Actual = test$Direction)
+accuracy_lda <- sum(diag(conf_matrix_lda)) / sum(conf_matrix_lda)
+sprintf("LDA accuracy: %f", accuracy_lda)
+
+#QDA:
+qda_model_extended <- qda(Direction ~ Lag2 + Lag1 + Lag2_squared + Lag1_Lag2, data = train)
+predicted_classes_qda <- predict(qda_model_extended, newdata = test)$class
+conf_matrix_qda <- table(Predicted = predicted_classes_qda, Actual = test$Direction)
+accuracy_qda <- sum(diag(conf_matrix_qda)) / sum(conf_matrix_qda)
+sprintf("QDA accuracy: %f", accuracy_qda)
+
+#KNN for different K values (5, 20, 26)
+train_X <- as.matrix(train[, c("Lag2", "Lag1", "Lag2_squared", "Lag1_Lag2")])
+test_X <- as.matrix(test[, c("Lag2", "Lag1", "Lag2_squared", "Lag1_Lag2")])
+
+predicted_classes_knn_5 <- knn(train = train_X, test = test_X, cl = train$Direction, k = 5)
+conf_matrix_knn_5 <- table(Predicted = predicted_classes_knn_5, Actual = test$Direction)
+accuracy_knn_5 <- sum(diag(conf_matrix_knn_5)) / sum(conf_matrix_knn_5)
+sprintf("KNN 5 accuracy: %f", accuracy_knn_5)
+
+predicted_classes_knn_20 <- knn(train = train_X, test = test_X, cl = train$Direction, k = 20)
+conf_matrix_knn_20 <- table(Predicted = predicted_classes_knn_20, Actual = test$Direction)
+accuracy_knn_20 <- sum(diag(conf_matrix_knn_20)) / sum(conf_matrix_knn_20)
+sprintf("KNN 20 accuracy: %f", accuracy_knn_20)
+
+predicted_classes_knn_25 <- knn(train = train_X, test = test_X, cl = train$Direction, k = 25)
+conf_matrix_knn_25 <- table(Predicted = predicted_classes_knn_25, Actual = test$Direction)
+accuracy_knn_25 <- sum(diag(conf_matrix_knn_25)) / sum(conf_matrix_knn_25)
+sprintf("KNN 25 accuracy: %f", accuracy_knn_25)
+
+#Naive Bayes
+nb_model_extended <- naiveBayes(Direction ~ Lag2 + Lag1 + Lag2_squared + Lag1_Lag2, data = train)
+predicted_classes_nb <- predict(nb_model_extended, newdata = test)
+conf_matrix_nb <- table(Predicted = predicted_classes_nb, Actual = test$Direction)
+accuracy_nb <- sum(diag(conf_matrix_nb)) / sum(conf_matrix_nb)
+sprintf("Naive Bayes accuracy: %f", accuracy_nb)
+
+```
+- KNN with K=5 and Naive Bayes both achieved the highest accuracy of 0.586538
+- Logistic Regression and LDA performed similarly with an accuracy of 0.557692
+- QDA performed the least comparatively, with an accuracy of 0.471154
+- KNN with K=20 and K=26 did not perform as well as K=5, suggesting that a smaller K might be more suitable for the dataset
+
+- The best performing methods here are KNN with K=5 and Naive Bayes.
+- If more interpretability is desired out of the dataset, the we can still consider using LDA despite the slightly lower accuracy.
+
+### 14. a)
+```{r}
+#loading auto dataset
+data("Auto")
+
+#median of mpg
+median_mpg <- median(Auto$mpg)
+
+#binary variable mpg01
+Auto$mpg01 <- ifelse(Auto$mpg > median_mpg, 1, 0)
+```
+
+### 14. b)
+```{r}
+#scatterplots
+# mpg01 vs. displacement
+ggplot(Auto, aes(x = displacement, y = mpg01)) + 
+  geom_point() +
+  labs(title = "mpg01 vs. displacement", x = "displacement", y = "mpg01")
+
+# mpg01 vs. horsepower
+ggplot(Auto, aes(x = horsepower, y = mpg01)) + 
+  geom_point() +
+  labs(title = "mpg01 vs. horsepower", x = "horsepower", y = "mpg01")
+
+# mpg01 vs. weight
+ggplot(Auto, aes(x = weight, y = mpg01)) + 
+  geom_point() +
+  labs(title = "mpg01 vs. weight", x = "weight", y = "mpg01")
+
+# mpg01 vs. acceleration
+ggplot(Auto, aes(x = acceleration, y = mpg01)) + 
+  geom_point() +
+  labs(title = "mpg01 vs. acceleration", x = "acceleration", y = "mpg01")
+
+#Boxplots
+# mpg01 vs. cylinders
+ggplot(Auto, aes(x = factor(cylinders), y = mpg01)) + 
+  geom_boxplot() +
+  labs(title = "mpg01 vs. cylinders", x = "cylinders", y = "mpg01")
+
+# mpg01 vs. year
+ggplot(Auto, aes(x = factor(year), y = mpg01)) + 
+  geom_boxplot() +
+  labs(title = "mpg01 vs. year", x = "year", y = "mpg01")
+
+# mpg01 vs. origin
+ggplot(Auto, aes(x = factor(origin), y = mpg01)) + 
+  geom_boxplot() +
+  labs(title = "mpg01 vs. origin", x = "origin", y = "mpg01")
+```
+- There is a clear separation in mpg01 values with higher mpg01 values corresponding to lower displacement values
+- There is a noticeable trend where lower weight corresponds to higher mpg01 values
+- The boxplot shows that cars with fewer cylinders (3, 4, and 5) tend to have higher mpg01
+- displacement, horsepower, weight, cylinders, year, and origin are the features most strongly associated with mpg01 and are likely to be useful predictors
+
+### 14. d)
+```{r}
+# random numbers to reproduce
+set.seed(120)
+# no. of rows for train. data: 70% 
+train_data_rows <- sample(1:nrow(Auto), 0.7 * nrow(Auto))
+
+# Splitting into train. and test
+train_set <- Auto[train_data_rows, ]
+test_set <- Auto[-train_data_rows, ]
+
+dim(train_set)
+dim(test_set)
+
+# choosing variables that closely associate with mpg01
+selected_vars <- mpg01 ~ displacement + horsepower + weight + cylinders
+
+#LDA on train. data
+lda_model <- lda(selected_vars, data = train_set)
+
+#predicting on test dataset
+lda_predictions <- predict(lda_model, newdata = test_set)$class
+
+#confusion matrix
+conf_matrix_lda <- table(Predicted = lda_predictions, Actual = test_set$mpg01)
+print("Confusion matrix: ")
+conf_matrix_lda
+
+#test error calculation
+test_error_lda <- 1 - sum(diag(conf_matrix_lda)) / sum(conf_matrix_lda)
+sprintf("Test error of the model: %f", test_error_lda)
+
+
+```
+- test error of the model is 0.135593 which means that approximately 13.56% of the test data was misclassified by the LDA model.
+- the model seems to be doing a reasonably good job of predicting whether a car gets high or low gas mileage based on the variables selected
+
+### 14. e)
+```{r}
+# QDA for same variables selected 
+qda_model <- qda(selected_vars, data = train_set)
+
+#predictions
+qda_predictions <- predict(qda_model, newdata = test_set)$class
+
+#confusion matrix
+conf_matrix_qda <- table(Predicted = qda_predictions, Actual = test_set$mpg01)
+print("Confusion matrix: ")
+conf_matrix_qda
+
+test_error_qda <- 1 - sum(diag(conf_matrix_qda)) / sum(conf_matrix_qda)
+sprintf("Test error of the model: %f", test_error_qda)
+
+```
+- Both the LDA and QDA models have the same test error rate of approximately 13.56% with differences in the confusion matrix numbers.
+
+### 14. g)
+```{r}
+#Naive Bayes 
+nb_model <- naiveBayes(selected_vars, data = train_set)
+
+#predictions
+nb_predictions <- predict(nb_model, newdata = test_set)
+
+#Confusion matrix
+conf_matrix_nb <- table(Predicted = nb_predictions, Actual = test_set$mpg01)
+print("Confusion Matrix:")
+conf_matrix_nb
+
+#test error
+test_error_nb <- 1 - sum(diag(conf_matrix_nb)) / sum(conf_matrix_nb)
+sprintf("Test error of the model: %f", test_error_nb)
+
+```
+All 3 models — LDA, QDA, and Naive Bayes, are performing similarly with a test error of approximately 13.56%. This consistency suggests that the feature selection is robust and that these models are equally suited to this particular classification task
+
+### 14. h)
+```{r}
+selected_vars <- c("displacement", "horsepower", "weight", "cylinders")
+#splitting train. and test data
+train_indices <- sample(1:nrow(Auto), size = 0.7 * nrow(Auto))
+train_set <- Auto[train_indices, ]
+test_set <- Auto[-train_indices, ]
+# data matrices for KNN
+train_X <- as.matrix(train_set[, selected_vars])
+test_X <- as.matrix(test_set[, selected_vars])
+train_Y <- train_set$mpg01
+
+# K values to test
+ks <- 1:50  # K from 1 to 50
+
+# KNN for each K using sapply
+test_errors <- sapply(ks, function(k) {
+    knn_predictions <- knn(train = train_X, test = test_X, cl = train_Y, k = k)
+    mean(knn_predictions != test_set$mpg01)
+})
+
+# Plotting test errors vs. K
+plot(ks, test_errors, type = "o", xlab = "K", ylab = "Test Error", main = "KNN Test Error vs. K")
+
+# selecting the best K with lowest test error
+best_k <- ks[which.min(test_errors)]
+best_test_error <- min(test_errors)
+print(paste("Best K is:", best_k, "with test error:", best_test_error))
+```
+- the best K for KNN model is 30, with a test error of approximately 14.4%. This is a strong result, indicating that the KNN model performs well with this value of K on the Auto dataset

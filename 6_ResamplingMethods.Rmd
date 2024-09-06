@@ -1,0 +1,294 @@
+---
+title: "Week6_Ch5"
+author: "Sahana Ramakrishnan"
+date: "2024-08-21"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ISLR2)
+```
+
+## Chapter 5: Exercise 5.4
+
+### 5. a) logistic regression in default data set
+```{r}
+#random seed 
+set.seed(42)
+
+#loading default dataset
+data("Default")
+
+#logistic regression model
+logistic_model <- glm(default ~ income + balance, data = Default, family = binomial)
+
+#model summary
+summary(logistic_model)
+
+```
+### 5. b) i)
+```{r}
+# Splitting data into train. set and validation set
+train_indices <- sample(1:nrow(Default), nrow(Default) / 2)
+train_data <- Default[train_indices, ]  
+validation_data <- Default[-train_indices, ]
+```
+
+### 5. b) ii)
+```{r}
+# log. regression on training observations
+
+logistic_model_train <- glm(default ~ income + balance, data = train_data, family = binomial)
+
+#Model summary
+summary(logistic_model_train)
+
+```
+### 5. b) iii)
+```{r}
+# Predicting posterior prob. of default
+validation_probs <- predict(logistic_model_train, validation_data, type = "response")
+
+# default category classification - if posterior prob. > 0.5
+validation_preds <- ifelse(validation_probs > 0.5, "Yes", "No")
+
+
+# converting predictions to factors
+validation_preds <- factor(validation_preds, levels = levels(validation_data$default))
+
+head(validation_preds)
+```
+- this output indicates that first few individuals in the validation set are predicted not to default
+i.e. No
+
+### 5. b) iv)
+```{r}
+# confusion matrix
+confusion_matrix <- table(Predicted = validation_preds, Actual = validation_data$default)
+print(confusion_matrix)
+
+#test error rate
+test_error_rate <- mean(validation_preds != validation_data$default)
+test_error_rate
+
+```
+
+### 5. c)
+```{r}
+#repeating steps from b) 3 times
+
+set.seed(42)
+
+#function to perform the steps
+run_validation <- function() {
+  train_indices <- sample(1:nrow(Default), nrow(Default) / 2)
+  train_data <- Default[train_indices, ]
+  validation_data <- Default[-train_indices, ]
+  
+  #log. regression model
+  logistic_model_train <- glm(default ~ income + balance, data = train_data, family = binomial)
+  
+  #predicting posterior probabilities
+  validation_probs <- predict(logistic_model_train, validation_data, type = "response")
+  
+  # posterior probability > 0.5
+  validation_preds <- ifelse(validation_probs > 0.5, "Yes", "No")
+  validation_preds <- factor(validation_preds, levels = levels(validation_data$default))
+  
+  return(validation_preds)
+}
+
+# Using replicate to run process 3 times
+validation_results <- replicate(3, run_validation())
+#validation_results
+
+```
+- the predictions are highly consistent across different splits, indicating the model's stability
+- majority of predictions are "No" suggesting a potential class imbalance issue, where non-default cases dominate
+- Few predictions vary between "Yes" and "No" highlighting individuals near the decision boundary who might be sensitive to slight changes in training data
+
+### 5. d)
+```{r}
+set.seed(42)
+
+# function to perform validation process with student variable
+run_validation_with_student <- function() {
+  train_indices <- sample(1:nrow(Default), nrow(Default) / 2)
+  train_data <- Default[train_indices, ]
+  validation_data <- Default[-train_indices, ]
+  
+  #log. regression model
+  logistic_model_train <- glm(default ~ income + balance + student, data = train_data, family = binomial)
+  validation_probs <- predict(logistic_model_train, validation_data, type = "response")
+  
+  #posterior prob. > 0.5
+  validation_preds <- ifelse(validation_probs > 0.5, "Yes", "No")
+  validation_preds <- factor(validation_preds, levels = levels(validation_data$default))
+  #test error rate
+  test_error_rate <- mean(validation_preds != validation_data$default)
+  return(test_error_rate)
+}
+
+test_error_rates_with_student <- replicate(3, run_validation_with_student())
+test_error_rates_with_student
+
+#mean test error rate
+mean_test_error_rate_with_student <- mean(test_error_rates_with_student)
+mean_test_error_rate_with_student
+
+```
+- Including the student dummy variable slightly reduced the test error rate, suggesting that being a student provides useful additional information for predicting default, improving the model's accuracy
+
+### 6. a)
+```{r}
+set.seed(42)
+#using default data
+data("Default")
+
+#log. regression model for income and balance
+logistic_model <- glm(default ~ income + balance, data = Default, family = binomial)
+
+model_summary <- summary(logistic_model)
+model_summary
+
+# standard errors
+standard_errors <- model_summary$coefficients[, "Std. Error"]
+standard_errors[c("income", "balance")]
+
+```
+### 6. b)
+```{r}
+# boot.fn
+boot.fn <- function(data, index) {
+  subset_data <- data[index, ]
+  # log. regression model
+  logistic_model <- glm(default ~ income + balance, data = subset_data, family = binomial)
+  
+  return(coef(logistic_model)[c("income", "balance")])
+}
+
+# testing with a random sample index
+set.seed(42)
+test_index <- sample(1:nrow(Default), nrow(Default), replace = TRUE)
+boot.fn(Default, test_index)
+
+```
+### 6. c)
+```{r}
+library(boot)
+set.seed(42)
+
+#using boot func. to estimate standard errors
+bootstrap_results <- boot(data = Default, statistic = boot.fn, R = 1000)
+bootstrap_results
+
+#extracting standard errors from bootstrap results
+bootstrap_standard_errors <- apply(bootstrap_results$t, 2, sd)
+print(bootstrap_standard_errors)
+```
+### 6. d)
+- The standard errors for both income and balance coefficients are similar between glm() and the bootstrap method, suggesting that the standard formula used by glm() provides a reliable estimate of variability for "default" dataset
+- slight differences observed e.g., income: 5.073444e-06 vs. balance: 2.299133e-04 indicate that the bootstrap method captures some nuances of sampling variability
+- Using both methods provides confidence in the stability and robustness of the coefficient estimates, with the bootstrap approach serving as a useful validation of the standard error estimates from glm()
+
+### 7. a)
+```{r}
+#weekly dataset
+data("Weekly")
+
+# logistic regression model
+logistic_model_weekly <- glm(Direction ~ Lag1 + Lag2, data = Weekly, family = binomial)
+summary(logistic_model_weekly)
+
+```
+### 7. b)
+```{r}
+# Excluding first observation
+weekly2 <- Weekly[-1, ]
+
+#log. regression model
+logistic_model2 <- glm(Direction ~ Lag1 + Lag2, data = weekly2, family = binomial)
+
+summary(logistic_model2)
+```
+### 7. c)
+```{r}
+# extracting first observation's values
+first_obs <- Weekly[1, c("Lag1", "Lag2")]
+
+# probability prediction of direction = Up
+predicted_prob <- predict(logistic_model2, newdata = first_obs, type = "response")
+
+# classifying Up if predicted probability > 0.5, else Down
+predicted_direction <- ifelse(predicted_prob > 0.5, "Up", "Down")
+predicted_direction
+
+# check actual direction
+actual_direction <- Weekly$Direction[1]
+
+# compare predicted and actual
+list(Predicted = predicted_direction, Actual = actual_direction)
+```
+### 7. d) i), ii), iii)
+```{r}
+
+#store predictions
+n <- nrow(Weekly)
+predictions <- rep(NA, n) 
+
+# Loop over each observation
+for (i in 1:nrow(Weekly)) {
+  # Excluding i-th observation
+  train_data <- Weekly[-i, ]
+  
+  #logistic regression model
+  logistic_model <- glm(Direction ~ Lag1 + Lag2, data = train_data, family = binomial)
+
+  # predicting prob. of direction: i-th observation
+  test_data <- Weekly[i, c("Lag1", "Lag2")]
+  predicted_prob <- predict(logistic_model, newdata = test_data, type = "response")
+  predictions[i] <- ifelse(predicted_prob > 0.5, "Up", "Down")
+}
+
+# convert predictions to factor
+predictions <- factor(predictions, levels = levels(Weekly$Direction))
+
+#compare predictions
+accuracy <- mean(predictions == Weekly$Direction)
+accuracy
+```
+
+### 7. d) iv)
+```{r}
+errors <- rep(NA, n) 
+
+for (i in 1:n) {
+  train_data <- Weekly[-i, ]
+  #logistic regression
+  logistic_model <- glm(Direction ~ Lag1 + Lag2, data = train_data, family = binomial)
+  test_data <- Weekly[i, c("Lag1", "Lag2")]
+  predicted_prob <- predict(logistic_model, newdata = test_data, type = "response")
+  predictions[i] <- ifelse(predicted_prob > 0.5, "Up", "Down")
+  
+  # Checking errors
+  errors[i] <- ifelse(predictions[i] != Weekly$Direction[i], 1, 0)
+}
+
+#convert predictions to factor
+predictions <- factor(predictions, levels = levels(Weekly$Direction))
+
+# accuracy calculation
+accuracy <- mean(predictions == Weekly$Direction)
+accuracy
+
+```
+- Accuracy: 0.5500, means the logistic regression model correctly classified about 55% of the observations
+
+### 7. e)
+```{r}
+# LOOCV error rate
+loocv_error_rate <- mean(errors)
+loocv_error_rate
+```
+- LOOCV Error Rate: 0.4499, indicating that the model made errors on approximately 45% of the observations during the leave-one-out cross-validation process

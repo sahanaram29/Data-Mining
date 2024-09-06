@@ -1,0 +1,187 @@
+---
+title: "Week 4_Ch4"
+author: "Sahana Ramakrishnan"
+date: "2024-08-05"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ISLR2)
+library(dplyr)
+library(corrplot)
+library(carat) # for confusion matrix
+library(ggplot2)
+```
+## Exercise 4.8
+### 13. a)
+```{r}
+# Loading weekly data
+data("Weekly")
+
+# numerical summary: weekly data
+summary(Weekly)
+```
+
+```{r}
+#correlation matrix
+cor(Weekly[, -9]) # excluding 'Direction' column since its categorical
+#graphical summary
+corrplot(cor(Weekly[, -9]), type = "lower", diag = FALSE, method = "ellipse")
+```
+- There is a noticeable positive correlation between Volume and Today
+- correlations between Lag1, Lag2, Lag3, Lag4, and Lag5 with Today are relatively weak, suggesting that the returns of previous weeks don't have a strong linear relationship with returns of the current week.
+
+### 13. b)
+```{r}
+#logistic regression
+logistic_model <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 +
+                        Lag5 + Volume, data = Weekly, family = binomial)
+
+#summary of log model
+summary(logistic_model)
+
+```
+- Lag2 with p-value 0.0296 appears to be significant at the 0.05 level
+
+### 13. c)
+```{r}
+#confusion matrix
+
+#training data prediction
+predicted_probs <- predict(logistic_model, type = "response")
+predicted_classes <- ifelse(predicted_probs > 0.5, "Up", "Down")
+
+#matrix
+conf_matrix <- table(Predicted = predicted_classes, Actual = Weekly$Direction)
+conf_matrix
+
+#calculating overall fraction of correct predictions
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+accuracy
+```
+- accuracy of the model is approximately 56.1%
+- the model has a more false positives - 430 than false negatives - 48 suggesting that the model is more prone to predicting "Up" even when the actual outcome is "Down"
+- Overall, the confusion matrix reveals that the logistic regression model makes more mistakes in predicting "Down" instances correctly and tends to overpredict "Up" instances
+
+### 13. d)
+```{r}
+# Splitting data into training (1990-2008) and test (2009-2010) data sets
+train <- Weekly[Weekly$Year <= 2008, ]
+test <- Weekly[Weekly$Year >= 2009, ]
+
+# log. regression model using train data with Lag2 as only predictor
+log_model_train <- glm(Direction ~ Lag2, data = train, family = binomial)
+
+# predicting test data
+predicted_probs_test <- predict(log_model_train, newdata = test, type = "response")
+predicted_classes_test <- ifelse(predicted_probs_test > 0.5, "Up", "Down")
+
+# test data confusion matrix
+conf_matrix_test <- table(Predicted = predicted_classes_test, Actual = test$Direction)
+conf_matrix_test
+
+# test data accuracy
+accuracy_test <- sum(diag(conf_matrix_test)) / sum(conf_matrix_test)
+accuracy_test
+```
+### 14. a)
+```{r}
+#loading auto dataset
+data("Auto")
+
+#median of mpg
+median_mpg <- median(Auto$mpg)
+
+#binary variable mpg01
+Auto$mpg01 <- ifelse(Auto$mpg > median_mpg, 1, 0)
+
+```
+
+### 14. b)
+```{r}
+#scatterplots
+# mpg01 vs. displacement
+ggplot(Auto, aes(x = displacement, y = mpg01)) + 
+  geom_point() +
+  labs(title = "mpg01 vs. displacement", x = "displacement", y = "mpg01")
+
+# mpg01 vs. horsepower
+ggplot(Auto, aes(x = horsepower, y = mpg01)) + 
+  geom_point() +
+  labs(title = "mpg01 vs. horsepower", x = "horsepower", y = "mpg01")
+
+# mpg01 vs. weight
+ggplot(Auto, aes(x = weight, y = mpg01)) + 
+  geom_point() +
+  labs(title = "mpg01 vs. weight", x = "weight", y = "mpg01")
+
+# mpg01 vs. acceleration
+ggplot(Auto, aes(x = acceleration, y = mpg01)) + 
+  geom_point() +
+  labs(title = "mpg01 vs. acceleration", x = "acceleration", y = "mpg01")
+
+#Boxplots
+# mpg01 vs. cylinders
+ggplot(Auto, aes(x = factor(cylinders), y = mpg01)) + 
+  geom_boxplot() +
+  labs(title = "mpg01 vs. cylinders", x = "cylinders", y = "mpg01")
+
+# mpg01 vs. year
+ggplot(Auto, aes(x = factor(year), y = mpg01)) + 
+  geom_boxplot() +
+  labs(title = "mpg01 vs. year", x = "year", y = "mpg01")
+
+# mpg01 vs. origin
+ggplot(Auto, aes(x = factor(origin), y = mpg01)) + 
+  geom_boxplot() +
+  labs(title = "mpg01 vs. origin", x = "origin", y = "mpg01")
+```
+- There is a clear separation in the mpg01 values with higher mpg01 values corresponding to lower displacement values
+- There is a noticeable trend where lower weight corresponds to higher mpg01 values
+- The boxplot shows that cars with fewer cylinders (3, 4, and 5) tend to have higher mpg01
+- displacement, horsepower, weight, cylinders, year, and origin are the features most strongly associated with mpg01 and are likely to be useful predictors
+
+### 14. c)
+
+```{r}
+# random numbers to reproduce
+set.seed(120)
+# determining no. of rows for train. data: 70% 
+train_data_rows <- sample(1:nrow(Auto), 0.7 * nrow(Auto))
+
+# Splitting into train. and test
+train_set <- Auto[train_data_rows, ]
+test_set <- Auto[-train_data_rows, ]
+
+dim(train_set)
+dim(test_set)
+```
+- training data has been split to 274 rows and 10 columns
+- test data has been split to 118 rows and 10 columns
+
+### 14. f)
+```{r}
+#log. regression fit
+log_model_auto <- glm(mpg01 ~ displacement + horsepower + weight + cylinders 
+                      + year + origin, data = train_set, family = binomial)
+
+#model summary
+summary(log_model_auto)
+
+# calculating test error of the model
+#predictions on test set
+pred_probs_test <- predict(log_model_auto, newdata = test_set, type = "response")
+pred_classes_test <- ifelse(pred_probs_test > 0.5, 1, 0)
+
+#confusion matrix
+conf_matrix_test <- table(Predicted = pred_classes_test, Actual = test_set$mpg01)
+print(conf_matrix_test)
+
+# Calculating test error rate
+test_error_rate <- sum(pred_classes_test != test_set$mpg01) / nrow(test_set)
+print(test_error_rate)
+
+```
+
+- the test error of the model is approximately 0.144 or 14.4% indicating that the model incorrectly predicts the binary variable mpg01 about 14.4% of the time on the test data set

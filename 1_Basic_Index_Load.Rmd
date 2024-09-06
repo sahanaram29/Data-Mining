@@ -1,0 +1,299 @@
+---
+title: "Week1_Ch2"
+author: "Sahana Ramakrishnan"
+date: "2024-07-18"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Chapter 2
+### 2.3.1 Basic Commands
+
+```{r}
+x <- c(1,3,2,5)
+x
+```
+
+```{r}
+x = c(1,6,2)
+x
+y = c(1,4,3)
+y
+```
+
+#### Using functions
+
+```{r}
+length(x)
+length(y)
+x+y
+```
+
+#### Using ls() function
+
+```{r}
+ls()
+rm(x,y)
+ls()
+
+```
+#### removing all objects at once
+```{r}
+ rm(list=ls())
+```
+
+
+#### Creating matrix
+
+```{r}
+?matrix
+x = matrix(data=c(1,2,3,4), nrow=2, ncol=2)
+x
+```
+
+
+```{r}
+x = matrix(c(1,2,3,4) ,2,2)
+matrix (c(1,2,3,4) ,2,2,byrow=TRUE)
+```
+
+#### Using sqrt() function
+```{r}
+sqrt(x)
+x^2
+```
+
+#### rnorm() for creating vectors
+```{r}
+x = rnorm(50)
+y = x + rnorm(50,mean=50,sd=.1)
+cor(x,y)
+
+```
+
+```{r}
+set.seed(1303)
+rnorm(50)
+```
+
+```{r}
+set.seed(3)
+y = rnorm(100)
+mean(y)
+var(y)
+sqrt(var(y))
+sd(y)
+```
+### 2.3.2 Graphics
+
+#### Using plot functions
+
+```{r}
+x = rnorm(100)
+y = rnorm(100)
+plot(x,y)
+plot(x, y, xlab = "this is the x-axis", ylab = "this is the y-axis",
+main = "Plot of X vs Y")
+
+
+```
+
+#### Using pdf() filetype
+```{r}
+pdf("Figure.pdf")
+plot(x,y,col="green")
+dev.off()       # denoting that we are done creating plot
+```
+#### Creating sequence of numbers
+```{r}
+x = seq(1, 10)
+x
+x = 1:10
+x = seq(-pi,pi,length =50)
+x
+```
+
+#### Using contour function - to finetune the output
+
+```{r}
+y = x
+f = outer(x,y,function (x,y)cos(y)/(1+x^2))
+contour(x,y,f)
+contour (x,y,f,nlevels =45,add=T)
+fa = (f-t(f))/2
+contour (x,y,fa,nlevels =15)
+```
+#### Using image function like contour but with color plots
+
+```{r}
+image(x,y,fa)
+persp(x,y,fa)
+persp(x,y,fa,theta =30)
+persp(x,y,fa,theta =30,phi =20)
+persp(x,y,fa,theta =30,phi =70)
+persp(x,y,fa,theta =30,phi =40)
+```
+
+- persp: to produce 3-dimensional plot
+
+### 2.3.3 Indexing Data
+
+```{r}
+A = matrix (1:16,4,4)
+A
+```
+
+```{r}
+A[2,3]
+```
+
+
+```{r}
+A[c(1,3),c(2,4)]
+A[1:3,2:4]
+A[1:2,]
+A[,1:2]
+```
+#### Retrieving with no rows/no columns
+
+```{r}
+A[1,]
+A[-c(1,3) ,]  # to keep all rows/columns except the ones indicated in index
+
+```
+#### Using dim function
+
+```{r}
+dim(A)
+```
+
+### 2.3.4 Loading Data
+
+```{r}
+# To load Auto.data file into R
+Auto = read.table("Auto.data")
+fix(Auto)  # to view in spreadsheet format
+```
+
+#### To clean the data for missing elements
+
+```{r}
+Auto = read.table("Auto.data",header=T,na.strings ="?")
+fix(Auto)
+```
+
+#### Using read.csv for auto.csv file
+
+```{r}
+Auto = read.csv("Auto.csv",header=T,na.strings ="?")
+fix(Auto)
+dim(Auto)
+Auto[1:4,]
+```
+
+#### Using na.omit() to remove missing data rows
+
+```{r}
+Auto = na.omit(Auto)
+dim(Auto)
+```
+
+#### To check variable names
+
+```{r}
+names(Auto)
+```
+
+### 2.3.5 Additional Graphical & Numerical summaries
+
+```{r}
+# scatterplot of quantifying variables
+## plot(cylinders , mpg) 
+```
+- Throws an error: since the variable name in data set should be accessed using "$"
+
+```{r}
+plot(Auto$cylinders , Auto$mpg )
+attach(Auto)
+plot(cylinders , mpg)
+```
+
+#### Using cylinder as qualitative variable since there are less no. of values
+
+```{r}
+cylinders = as.factor(cylinders )
+cylinders
+```
+
+#### plotting the variable
+
+```{r}
+plot(cylinders , mpg)
+plot(cylinders , mpg , col ="red ")
+plot(cylinders , mpg , col ="red", varwidth =T)
+plot(cylinders , mpg , col ="red", varwidth =T,horizontal =T)
+plot(cylinders , mpg , col ="red", varwidth =T, xlab="cylinders ", ylab="MPG")
+```
+
+- Since the x-axis values are categorical, the plots will are boxplots.
+
+#### Plotting histograms
+
+```{r}
+hist(mpg)
+hist(mpg ,col =2)
+hist(mpg ,col=2, breaks =15)
+```
+#### Using pairs() function to create scatterplot matrix
+
+
+```{r}
+# since pairs(auto) throws an error due to horsepower column being non-numeric
+Auto <- read.csv("Auto.csv", stringsAsFactors = FALSE)
+
+# Converting "horsepower" to numeric, forcing non-numeric values to be NA
+Auto$horsepower <- as.numeric(Auto$horsepower)
+
+# Filling NA values in 'horsepower' with the mean of the column
+mean_hp <- mean(Auto$horsepower, na.rm = TRUE)
+Auto$horsepower[is.na(Auto$horsepower)] <- mean_hp
+
+# selecting only numeric columns
+numeric_columns <- sapply(Auto, is.numeric)
+Auto_numeric <- Auto[, numeric_columns]
+
+
+# now creating pairs
+pairs(Auto_numeric)
+pairs(~ mpg + displacement + horsepower + weight + acceleration , Auto_numeric)
+```
+#### Identifying value of a particular variable from plot
+
+```{r}
+plot(horsepower ,mpg)
+identify (horsepower ,mpg ,name)
+```
+#### Creating summary of Auto
+
+```{r}
+summary(Auto)
+summary(mpg)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

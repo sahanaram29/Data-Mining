@@ -1,0 +1,219 @@
+---
+title: "Week3_Ch3"
+author: "Sahana Ramakrishnan"
+date: "2024-07-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ISLR)
+#Setting working directory
+setwd("D:/NewEng/Summer 2024/Week 3/R/")
+```
+
+## Exercise 3.7
+### 8. a)
+
+```{r}
+# reading the data
+auto_data<- read.csv("Auto.csv", na.strings = "?")
+# Removing rows with missing values
+auto_data <- na.omit(auto_data)
+#auto_data
+
+# linear regression
+fit <- lm(mpg ~ horsepower, data = Auto)
+summary(fit)
+
+```
+- i) Yes, there is a significant relationship between horsepower and mpg, as indicated by the very low p-value (< 2e-16).
+- ii) The relationship is moderately strong, as indicated by the R-squared value of 0.5951.
+- iii) The relationship between the predictor (horsepower) and the response (mpg) is negative, as indicated by the negative coefficient -0.157845.
+
+### 8. a) iv)
+```{r}
+horsepower_98 <- data.frame(horsepower = 98)
+
+# Predicting mpg with confidence and prediction intervals
+predict(fit, newdata = horsepower_98, interval = "confidence", level = 0.95)
+predict(fit, newdata = horsepower_98, interval = "prediction", level = 0.95)
+
+```
+- The predicted mpg associated with a horsepower of 98 is 24.53703
+
+- The 95% confidence interval for this prediction is [24.03807, 25.03599]
+
+- The 95% prediction interval for this prediction is [14.72219, 34.35186]
+
+### 8. b)
+```{r}
+# Plotting response and predictor
+plot(auto_data$horsepower, auto_data$mpg, xlab = "horsepower", ylab = "mpg")
+abline(fit, col="red",lwd=2)
+```
+
+### 8. c)
+```{r}
+# Producing diagnostic plots - 2x2 grid
+par(mfrow = c(2, 2))
+plot(fit)
+```
+- The Residuals vs Fitted plot shows a non-random pattern indicating potential non-linearity
+- The Normal Q-Q plot suggests that residuals are not perfectly normally distributed with some deviation at the tails
+- Residuals vs Leverage plot highlights a few high-leverage points, indicating influential observations that may affect the regression model
+
+### 9. a)
+```{r}
+# scatterplot with all variables
+auto_data_numeric <- auto_data[, sapply(auto_data, is.numeric)]
+pairs(auto_data_numeric, cex=0.2)
+```
+
+### 9. b)
+```{r}
+corr_data <- subset(auto_data, select = -name)
+cor(corr_data)
+```
+
+### 9. c)
+```{r}
+# multiple linear regression
+fit <- lm(mpg ~ . -name, data = auto_data)
+#summary of the regression
+summary(fit)
+```
+i) Yes, there is a significant relationship between the predictors and the response (mpg), as indicated by the F-statistic (252.4 on 7 and 384 DF) and the very low p-value (< 2.2e-16), which suggests that at least one of the predictors is significantly related to the response.
+
+ii) The predictors that have a statistically significant relationship to the response (mpg) at p < 0.05:
+ - cylinders (p = 0.00784)
+ - displacement (p = 0.000484)
+ - weight (p < 2e-16)
+ - year (p < 2e-16)
+ - origin (p = 7.42e-07)
+ 
+iii) The coefficient for year: 0.750773, which suggests that, holding all other predictors constant, the mpg of cars increases by approximately 0.75 miles per gallon for each additional year. This indicates that newer cars tend to have better fuel efficiency.
+
+
+### 9. d)
+```{r}
+#diagnostic plots
+par(mfrow = c(2, 2))
+plot(fit)
+```
+- The diagnostic plots suggest a few unusually large outliers, particularly the point 14
+- Yes, the leverage plot identifies observations with unusually high leverage. Specifically, the point 14, stand out as having high leverage. It is influential because it might have a significant impact on the regression model's coefficients. 
+
+### 9. e)
+```{r}
+# Fitting linear regression model with interaction effects
+interaction_model <- lm(mpg ~ cylinders*displacement + horsepower*weight 
+                        + acceleration*year + origin*year, data = auto_data)
+
+#summary
+summary(interaction_model)
+```
+- The interactions cylinders:displacement, horsepower:weight, acceleration:year, and year:origin are statistically significant as their p-values are less than 0.05 
+
+### 9. f)
+```{r}
+# log transformation
+log_fit <- lm(mpg ~ log(horsepower) + log(weight) + log(displacement) + log(acceleration) 
+              + year + origin, data = auto_data)
+summary(log_fit)
+
+# Square root fit
+sqrt_fit <- lm(mpg ~ sqrt(horsepower) + sqrt(weight) + sqrt(displacement) 
+               + sqrt(acceleration) + year + origin, data = auto_data)
+summary(sqrt_fit)
+
+# square transformation
+square_fit <- lm(mpg ~ I(horsepower^2) + I(weight^2) + I(displacement^2) 
+                 + I(acceleration^2) + year + origin, data = auto_data)
+summary(square_fit)
+
+
+
+```
+- The log fit provided the best model fit, with the highest R-squared and Adjusted R-squared values: 0.847
+- Square root fit also performed well (0.831) but slightly less effectively than the log transformation.
+- The square fit captured some non-linear relationships but resulted in a lower model fit compared to the other transformations.
+
+### 10. a)
+```{r}
+# Carseats data
+data(Carseats)
+
+# multiple regression model 
+model <- lm(Sales ~ Price + Urban + US, data = Carseats)
+model
+```
+### 10. b)
+```{r}
+# interpretation of coefficient of the model
+summary(model)
+```
+### 10. c) 
+$$
+\textit{Sales} = 13 + -0.054 \times \textit{Price} + \begin{cases}
+   -0.022,   & \text{if $\textit{Urban}$ is Yes, $\textit{US}$ is No} \\
+    1.20,    & \text{if $\textit{Urban}$ is No, $\textit{US}$ is Yes} \\
+    1.18,    & \text{if $\textit{Urban}$ and $\textit{US}$ is Yes} \\
+    0,       & \text{Otherwise}
+\end{cases}
+$$
+
+### 10. d)
+- We will reject the null hypothesis for the predictors: Price, USYes and would not reject the null hypothesis for UrbanYes
+
+
+### 10. e)
+```{r}
+# smaller regression model
+smaller_model <- lm(Sales ~ Price + US, data = Carseats)
+
+# smaller model summary
+summary(smaller_model)
+
+```
+### 10. f)
+```{r}
+anova(model, smaller_model)
+```
+
+- The residual standard error is very similar between the two models, with smaller model having a slightly lower value indicating a marginally better fit.
+- Adjusted R-squared value is slightly higher for smaller model, suggesting that this model provides a marginally better fit after adjusting for the number of predictors
+- the smaller model which includes only Price and US, fits the data slightly better than Model (a), which includes Price, Urban, and US.
+- Overall, simplifying the model by excluding the non-significant predictor "Urban" results in a more parsimonious model that fits the data just as well
+
+
+### 10. g)
+```{r}
+# to obtain 95% confidence intervals for co-eff from smaller model
+confint(smaller_model, level = 0.95)
+```
+### 10. h)
+```{r}
+#diagnostic plots
+par(mfrow = c(2, 2))
+plot(smaller_model)
+
+#leverage values
+leverage_values <- hatvalues(smaller_model)
+
+# studentized residuals
+studentized_residuals <- rstudent(smaller_model)
+
+#high leverage points
+high_leverage_points <- which(leverage_values > (2 * mean(leverage_values)))
+print(high_leverage_points)
+
+#outliers based on studentized residuals
+outliers <- which(abs(studentized_residuals) > 2)
+print(outliers)
+```
+- The residuals appear to be randomly scattered around the horizontal line, which is good. But some points like 51, 377, and 369, seem to deviate significantly from the others indicating potential outliers.
+- points 368, 377, and others are identified as high leverage points. These points have a large influence on the regression model.
+- To conclude, there is evidence of both outliers and high leverage observations in the model from (e).
+
+

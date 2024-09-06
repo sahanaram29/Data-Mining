@@ -1,0 +1,249 @@
+---
+title: "Week2_Ch2_Exercise"
+author: "Sahana Ramakrishnan"
+date: "2024-07-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+## Chapter 2
+### Exercise 2.4
+### 8. a)
+```{r}
+#Setting working directory
+setwd("D:/NewEng/Summer 2024/Week 2/R/")
+
+#Reading the csv file
+college <- read.csv("College.csv")
+
+```
+
+### 8. b)
+
+```{r}
+#Viewing the data
+#View(college)
+
+#since first column is just names of the university
+rownames(college) <- college[, 1]
+View(college)
+
+```
+
+```{r}
+# to eliminate first column in data where names are stored
+college <- college [, -1]
+View(college)
+```
+
+### 8. c) i)
+```{r}
+#Summary function to see numerical summary of the data
+summary(college)
+
+```
+### 8. c) ii)
+```{r}
+# to produce scatterplot matrix of first 10 columns
+college$Private <- college$Private == "Yes"
+pairs(college[, 1:10])
+```
+
+### 8. c) iii)
+
+```{r}
+# to produce side-by-side boxplots of Outstate vs Private
+plot(college$Private, college$Outstate,
+     xlab = "Private",
+     ylab = "OutState",
+     main = "Boxplot of OutState Vs Private")
+```
+### 8. c) iv)
+
+```{r}
+# Creating new qualitative variable: elite
+
+Elite <- rep("No", nrow(college))
+Elite[college$Top10perc > 50] <- "Yes"
+Elite <- as.factor(Elite)
+college <- data.frame(college, Elite)
+
+```
+
+```{r}
+#Summary function to see how many elite universities there are
+summary(college$Elite)
+```
+
+```{r}
+#plot() function to produce boxplot: Outstate vs Elite
+
+plot(college$Elite, college$Outstate,
+     xlab = "Elite",
+     ylab = "Outstate",
+     main = "Boxplot of Outstate vs Elite")
+```
+### 8. c) v)
+
+```{r}
+# to divide plotting window into 2x2 grid
+par(mfrow = c(2, 2))
+```
+
+```{r}
+# Creating histograms for a few quantitative variables with different numbers of bins
+hist(college$Apps, breaks = 10, main = "Applications Histogram", xlab = "No. of Applications", col = "blue")
+hist(college$Enroll, breaks = 15, main = "Enrollments Histogram", xlab = "No. of Enrollments", col = "green")
+hist(college$Outstate, breaks = 20, main = "OutState Histogram", xlab = "OutState", col = "red")
+hist(college$PhD, breaks = 12, main = "PhD Faculty Histogram", xlab = "PhD Faculty %", col = "purple")
+```
+### 8. c) vi) Summary of the stats
+
+```{r}
+summary(college)
+
+# correlation matrix
+library(corrplot)
+correlation_matrix <- cor(college[, sapply(college, is.numeric)])
+corrplot(correlation_matrix, method = "circle")
+```
+
+```{r}
+# box plot for key variables: Graduation Rate by Private/Public
+
+plot(college$Private, college$Grad.Rate, 
+     xlab = "Private", 
+     ylab = "Graduation Rate", 
+     main = "Graduation Rate by Private/Public")
+
+# for Alumni donation % vs Elite
+plot(college$Elite, college$perc.alumni, 
+     xlab = "Elite University", 
+     ylab = "Alumni Donation Percentage", 
+     main = "Alumni donation % vs Elite")
+```
+- Private institutions generally have higher Outstate tuition compared to public institutions, as observed in the boxplots.
+- Private institutions also tend to have higher graduation rates compared to public institutions.
+- Elite universities show a higher % of alumni donations compared to non-elite universities.
+- There is a strong positive correlation between the no. of full-time undergraduates and the no. of applications received.
+
+These observations provide insights into the characteristics and differences between different types of institutions, their costs, and the demographic and academic profiles of their students
+
+### 9. a)
+
+#### Auto dataset
+
+```{r}
+# reading the data
+auto <- read.csv("Auto.csv", na.strings = "?")
+
+```
+
+```{r}
+# Removing rows with missing values
+auto <- na.omit(auto)
+#auto
+```
+- Quantitative predictors: mpg, cylinders, displacement, horsepower, weight, acceleration, year which are numeric and can be used for arithmetic calculations
+- Qualitative predictors: origin, name which are categorical and represents groups or categories
+
+### 9. b)
+
+```{r}
+# to determine range of each quantitative predictor 
+
+# Calculating range for each quant. predictors
+quantitative_vars <- c("mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "year")
+
+# Looping through each quant. variable
+for (var in quantitative_vars) {
+  cat(var, ":", range(auto[[var]]), "\n")
+}
+```
+- range(auto[[var]]) calculates the range (min and max values) of the specified variable.
+
+### 9. c) 
+
+```{r}
+# Looping through the above quant. variable and finding mean and SD
+for (var in quantitative_vars) {
+  cat(var, "Mean:", mean(auto[[var]]), "SD:", sd(auto[[var]]), "\n")
+}
+```
+### 9. d)
+
+```{r}
+# removing 10th through 85th observation
+auto_85 <- auto[-(10:85), ]
+
+head(auto_85)
+dim(auto_85)
+```
+
+```{r}
+# calculating mean, range and SD of the remaining subset of data 
+
+for (var in quantitative_vars) {
+  cat(var, "\n")
+  cat("  Range:", range(auto_85[[var]]), "\n")
+  cat("  Mean:", mean(auto_85[[var]]), "\n")
+  cat("  SD:", sd(auto_85[[var]]), "\n")
+}
+```
+
+### 9. e)
+
+```{r}
+# Setting 2x2 plotting window
+par(mfrow = c(2, 2))
+
+# mpg vs. horsepower
+plot(auto$horsepower, auto$mpg,
+     xlab = "Horsepower",
+     ylab = "MPG",
+     main = "Horsepower vs. MPG",
+     col = "blue")
+
+# weight vs. mpg
+plot(auto$weight, auto$mpg,
+     xlab = "Weight",
+     ylab = "MPG",
+     main = "Weight vs. MPG",
+     col = "green")
+
+# displacement vs. mpg
+plot(auto$displacement, auto$mpg,
+     xlab = "Displacement",
+     ylab = "MPG",
+     main = "Displacement vs. MPG",
+     col = "red")
+
+# acceleration vs. mpg
+plot(auto$acceleration, auto$mpg,
+     xlab = "Acceleration",
+     ylab = "MPG",
+     main = "Acceleration vs. MPG",
+     col = "purple")
+
+# Resetting plotting window
+par(mfrow = c(1, 1))
+```
+
+```{r}
+# Pairs plot of the first few quant. variables
+pairs(auto[, c("mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "year")])
+
+# Correlation matrix and heatmap
+correlation_matrix <- cor(auto[, sapply(auto, is.numeric)])
+corrplot(correlation_matrix, method = "circle")
+```
+- The graphical analysis reveals strong negative relationships between horsepower, weight, and displacement with mpg, indicating that cars with higher horsepower, greater weight, and larger engine displacement are significantly less fuel-efficient.
+- In contrast, acceleration shows a weaker positive relationship with mpg, suggesting that vehicles with higher acceleration tend to have slightly better fuel efficiency. 
+
+### 9. f)
+Yes, the plots suggest that several variables might be useful in predicting mpg. 
+The scatterplots reveal strong negative relationships between horsepower, weight, and displacement with mpg, indicating that these variables are likely significant predictors of fuel efficiency.
+Hence, we see that horsepower, weight, and displacement are likely to be important variables in predicting mpg
